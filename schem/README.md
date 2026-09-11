@@ -1,6 +1,6 @@
 # Suifu Island → Minecraft Sponge v2 Schematics
 
-`convert.py` が GLB をボクセライズして Sponge v2 (.schem, DataVersion 3465 = MC 1.20.1) に変換する。
+`convert.py` が GLB をボクセライズして Sponge v2 (.schem, DataVersion 4671 = MC 1.21.11) に変換する。
 
 ## ファイル
 - `suifu-island_96.schem`  — 100x58x100 (実質96幅+マージン), 10.4万ブロック
@@ -22,3 +22,4 @@
 3. 貼り付けたい地点に立って `//paste -a`(-a は空気ブロックをスキップ)
 
 再変換: `python3 schem/convert.py suifu-island_96.glb schem/suifu-island_96.schem`
+検証: `python3 schem/verify_schem.py schem/suifu-island_96.schem suifu-island_96.glb`(gzip/NBT/varint/再現性/レンダ照合の5層チェック)

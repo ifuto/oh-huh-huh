@@ -12,7 +12,7 @@ Pipeline (mirrors ObjToSchematic conceptually):
 
 Usage: python3 convert.py <in.glb> <out.schem>
 """
-import struct, json, sys, gzip, hashlib
+import struct, json, sys, gzip, hashlib, os, hashlib, os
 import numpy as np
 
 # ---------------- GLB parsing ----------------
@@ -214,7 +214,7 @@ def natural_fill(grid, namegrid):
 
 # ---------------- sponge v2 export ----------------
 
-def write_schem(namegrid, dims, out_path, dataversion=3465):
+def write_schem(namegrid, dims, out_path, dataversion=4671):  # 4671 = MC 1.21.11
     W, H, L = dims
     used = sorted({n for n in namegrid.ravel() if n is not None})
     if 'minecraft:air' not in used:
@@ -251,7 +251,13 @@ def write_schem(namegrid, dims, out_path, dataversion=3465):
         }),
     })
     f = nbtlib.File({'Schematic': sch})
-    f.save(out_path, gzipped=True)
+    tmp = out_path + '.tmp.nbt'
+    f.save(tmp, gzipped=True)
+    payload = gzip.decompress(open(tmp, 'rb').read())
+    os.unlink(tmp)
+    # deterministic gzip: mtime=0, no embedded filename -> byte-identical builds
+    with open(out_path, 'wb') as fh:
+        fh.write(gzip.compress(payload, compresslevel=9, mtime=0))
     return palette
 
 # ---------------- previews & stats ----------------
