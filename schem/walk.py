@@ -317,7 +317,7 @@ def look(camx, camy, camz, yaw, pitch=8, out='look.png', rw=520, rh=300, fov=72,
         lam = np.array([LIGHT[int(x)] for x in f])
         col *= lam[:, None]
         # glowstone emissive
-        g = bid == P['minecraft:glowstone']
+        g = bid == P.get('minecraft:glowstone', -1)
         if g.any(): col[g] = np.minimum(col[g] * 1.9 + 40, 255)
         # fog
         fogc = 0.55 * SKY_BOT + 0.45 * SKY_TOP

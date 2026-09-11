@@ -51,3 +51,19 @@ DataVersion 4671 / npzと完全一致 / **全ブロック支持付き**(アー�
 寸法: 120×46×104 / 約34,000ブロック
 視点写真: `renders/arena_{topdown,ext,spawn,int,high,floor,ruin}.png`
 再生成: `python3 schem/build_arena.py`
+
+---
+
+# smooth_plains_1000.schem — 1000×1000 滑らかな平原 (MC 1.21.11, DV 4671)
+
+`build_plains.py` が生成。建物・木・水・洞窟なしの純地形:
+- **全面石の地盤(深さ200)** + **土2層** + **草ブロック1層**
+- 表面は緩やかな丘: **高低差ちょうど8ブロック**(y186〜194)、隣接段差最大1
+- サイン波の合成(周期150〜310ブロック)による決定論的地形・再現可能
+
+寸法: 1000×200×1000 / 2億ブロック(内 空気 9,025,498)
+検証: gzip CRC32/ISIZE / FAWEルート / varintバイト数=W×H×L / DV4671 /
+npz完全一致 / 層構成全柱合格 / 洞窟0(空気は全て表面上)
+
+視点写真: `renders/smooth_{east,south,hills}.png`
+再生成: `python3 schem/build_plains.py`
