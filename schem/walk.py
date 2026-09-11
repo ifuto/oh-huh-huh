@@ -283,6 +283,8 @@ SHOTS = [
     ("big_beach",  384, 297, 250, 8),
     ("big_cherry", 120, 350, 60, 10),
     ("big_bay",    455, 240, 280, 8),
+    ("big_peak",   221, 132, 200, 18),
+    ("big_rimfall", 183, 44, 190, 4),
 ]
 for shot in SHOTS:
     name, x, z, yaw = shot[:4]

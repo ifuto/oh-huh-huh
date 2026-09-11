@@ -196,15 +196,52 @@ for y0 in range(0, H, 40):
     slab[m] = WAT
     grid[y0:y1] = slab
 
-# ---------------- rim waterfalls (limited, deterministic) ----------------
-rim = mask & ~(np.roll(mask, 1, 0) & np.roll(mask, -1, 0) & np.roll(mask, 1, 1) & np.roll(mask, -1, 1))
-rim_water = rim & (h <= SEA) & (fbm(36) > .62)
-rz, rx = np.nonzero(rim_water)
-print(f"rim waterfall columns: {len(rx)}")
+# ---------------- cliff walls plunging into the sea ----------------
+# At the wavy island edge, tall walls (high h, underside high up) can FLOAT
+# above sea-level slots, exposing the water's side faces to the air gap
+# beneath the wall.  Fix: extend such walls (only near the island edge) down
+# to the neighbouring sea bed so they plunge into the water as natural
+# cliffs.  Interior rock arches (far from the void) are left untouched.
+sea_col = mask & (h < SEA)
+# min neighbour sea-bed height (h of adjacent sea columns)
+INF = np.iinfo(np.int64).max // 4
+m_ = np.full_like(h, INF)
+m_[1:, :] = np.minimum(m_[1:, :], np.where(sea_col[:-1, :], h[:-1, :], INF))
+m_[:-1, :] = np.minimum(m_[:-1, :], np.where(sea_col[1:, :], h[1:, :], INF))
+m_[:, 1:] = np.minimum(m_[:, 1:], np.where(sea_col[:, :-1], h[:, :-1], INF))
+m_[:, :-1] = np.minimum(m_[:, :-1], np.where(sea_col[:, 1:], h[:, 1:], INF))
+plunge = mask & (m_ < INF) & (u > m_ + 1)
+pz, px = np.nonzero(plunge)
+for z, x in zip(pz, px):
+    grid[int(m_[z, x]) + 1:int(u[z, x]), z, x] = S
+print(f"rock pillar plunge columns: {len(px)}")
+
+# ---------------- rim waterfalls ----------------
+vmask = ~mask
+# Sea water whose face touches the true void (outside the island) pours over
+# the edge as a waterfall curtain down to the underside (the classic
+# floating-island look).
+side_void = np.zeros_like(sea_col)
+side_void[1:, :] |= sea_col[1:, :] & vmask[:-1, :]
+side_void[:-1, :] |= sea_col[:-1, :] & vmask[1:, :]
+side_void[:, 1:] |= sea_col[:, 1:] & vmask[:, :-1]
+side_void[:, :-1] |= sea_col[:, :-1] & vmask[:, 1:]
+falls = sea_col & side_void
+f37 = fbm(37)
+rz, rx = np.nonzero(falls)
+print(f"waterfall curtain columns: {len(rx)}")
 for z, x in zip(rz, rx):
-    bottom = max(u[z, x] - 6, 14)
-    for y in range(h[z, x] - 1, bottom, -1):
+    extra = int(4 + 9 * f37[z, x])
+    bottom = max(u[z, x] - 6 - extra, 14)
+    for y in range(SEA, bottom, -1):
         grid[y, z, x] = WAT
+    # thicken the curtain by one block into the adjacent void column
+    for dz2, dx2 in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+        nz2, nx2 = z + dz2, x + dx2
+        if 0 <= nz2 < L and 0 <= nx2 < W and not mask[nz2, nx2]:
+            for y in range(SEA, bottom, -1):
+                grid[y, nz2, nx2] = WAT
+            break
 
 # ---------------- trees & flora ----------------
 print("flora...")
@@ -326,42 +363,6 @@ while cnt < 40:
                         if 0 <= yy2 < H and grid[yy2, z + ddz, x + ddx] == AIR:
                             grid[yy2, z + ddz, x + ddx] = CO if rnd.random() < .4 else S
         cnt += 1
-
-# cleanup: orphaned log columns (trunk segments with no leaves anywhere near)
-LOGS = {P['minecraft:oak_log'], P['minecraft:birch_log'], P['minecraft:spruce_log'], P['minecraft:cherry_log']}
-LEAVES = {P['minecraft:oak_leaves'], P['minecraft:birch_leaves'], P['minecraft:spruce_leaves'],
-          P['minecraft:dark_oak_leaves'], P['minecraft:cherry_leaves']}
-removed = 0
-for z in range(2, L - 2):
-    for x in range(2, W - 2):
-        col = grid[:, z, x]
-        y = 40
-        while y < H - 1:
-            if col[y] in LOGS:
-                y0 = y
-                while y < H - 1 and col[y] in LOGS:
-                    y += 1
-                seg = col[max(0, y0 - 2):min(H, y + 2)]
-                has_leaf = any(col[yy] in LEAVES for yy in range(max(0, y0 - 3), min(H, y + 3)))
-                near_leaf = False
-                for zz2 in range(max(0, z - 3), min(L, z + 4)):
-                    for xx2 in range(max(0, x - 3), min(W, x + 4)):
-                        c2 = grid[:, zz2, xx2]
-                        if c2[y0:min(H, y + 2)].max() if False else False:
-                            pass
-                # any leaf adjacent horizontally?
-                for yy2 in range(max(0, y0 - 3), min(H, y + 3)):
-                    if has_leaf: break
-                    for zz2 in (z - 1, z + 1):
-                        if 0 <= zz2 < L and grid[yy2, zz2, x] in LEAVES: has_leaf = True; break
-                    for xx2 in (x - 1, x + 1):
-                        if 0 <= xx2 < W and grid[yy2, z, xx2] in LEAVES: has_leaf = True; break
-                if not has_leaf:
-                    col[y0:y] = AIR
-                    removed += (y - y0)
-            else:
-                y += 1
-print("orphan trunk blocks removed:", removed)
 
 nonair = int((grid != AIR).sum())
 print(f"world blocks: {nonair:,} / {grid.size:,}")
