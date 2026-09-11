@@ -29,3 +29,25 @@ gzip CRC32/ISIZE / FAWEルートレイアウト / 60,000,000 varint = W×H×L /
 
 視点写真: `renders/walk_big_*.png` / 俯瞰図: `renders/big_topdown.png`
 再生成: `python3 schem/build_big.py`、一人称撮影: `python3 schem/walk.py`
+
+---
+
+# colosseum_arena.schem — コロッセオ風PvPアリーナ (MC 1.21.11, DV 4671)
+
+`build_arena.py` が生成。楕円形のローマ円形闘技場:
+- **泥レンガ(mud_bricks/packed_mud)× 凝灰岩(tuff/tuff_bricks)× 淡色砂岩(cut/smooth_sandstone)** の3色構成
+- 外周は **3層アーチ+アッティカ・コーニス**、第3層は小窓、ピラスター付
+- **1扇区は崩落した廃墟**(3層目欠落+瓦礫の山)
+- 砂の闘技床(中央に石レンガのモザイク円+8本スポーク)、ポディアム壁、4段の客席+8つの通路
+- 4方向に門トンネル(テラスとフラッシュな床、隔柱ごとに採光の glowstone)
+- **スポーン広場は東門前** — 闘技場中央まで **直進28ブロック = スプリント約5秒**、
+  経路は頭上余白3ブロック以上のフラットな石eller床
+
+## 検証 (すべて合格)
+gzip CRC32/ISIZE / FAWEルート(root=Schematic, Version 2) / varintバイト数=W×H×L /
+DataVersion 4671 / npzと完全一致 / **全ブロック支持付き**(アーチ・スパンドレル15個のみ許容) /
+スポーン→中央直進経路の歩行可能性
+
+寸法: 120×46×104 / 約34,000ブロック
+視点写真: `renders/arena_{topdown,ext,spawn,int,high,floor,ruin}.png`
+再生成: `python3 schem/build_arena.py`

@@ -110,62 +110,122 @@ TX['packed_ice'] = bank(tex('snow'))  # placeholder; swap below if available
 if os.path.exists(f'{TEXDIR}/packed_ice.png'):
     TX['packed_ice'] = bank(tex('packed_ice'))
 TX['terracotta_myc'] = TX['myc_top']
+TX['mud_bricks'] = bank(tex('mud_bricks'))
+TX['packed_mud'] = bank(tex('packed_mud'))
+TX['tuff'] = bank(tex('tuff'))
+TX['tuff_bricks'] = bank(tex('tuff_bricks'))
+TX['pol_tuff'] = bank(tex('polished_tuff'))
+TX['chi_tuff'] = bank(tex('chiseled_tuff'))
+TX['cut_sand'] = bank(tex('cut_sandstone'))
+TX['smooth_sand'] = bank(tex('smooth_sandstone')) if os.path.exists(f'{TEXDIR}/smooth_sandstone.png') else bank(tex('sandstone_top'))
+TX['chi_sand'] = bank(tex('chiseled_sandstone'))
+TX['cracked_sb'] = bank(tex('cracked_stone_bricks'))
+TX['mossy_sb'] = bank(tex('mossy_stone_bricks'))
+TX['mossy_cob'] = bank(tex('mossy_cobblestone'))
+TX['gravel'] = bank(tex('gravel'))
+TX['pol_and'] = bank(tex('polished_andesite'))
+TX['strip_spruce'] = bank(tex('stripped_spruce_log'))
+TX['strip_spruce_t'] = bank(tex('spruce_log_top'))
+TX['yellow_w'] = bank(tex('yellow_wool'))
 
 TEXN = np.stack([np.clip(b * 255, 0, 255).astype(np.uint8) for b in BANK])  # (K,16,16,4)
 
-# id -> (top, side, bottom) texture indices
+# block name -> (top, side, bottom) texture indices
 def T3(top, side=None, bottom=None):
     side = side if side is not None else top
     bottom = bottom if bottom is not None else side
     return (top, side, bottom)
-P = PID
-M = {
-    P['minecraft:air']: None,
-    P['minecraft:grass_block']: T3(TX['grass_top'], TX['grass_side'], TX['dirt']),
-    P['minecraft:dirt']: T3(TX['dirt']),
-    P['minecraft:stone']: T3(TX['stone']),
-    P['minecraft:andesite']: T3(TX['andesite']),
-    P['minecraft:cobblestone']: T3(TX['cobble']),
-    P['minecraft:stone_bricks']: T3(TX['stonebrick']),
-    P['minecraft:smooth_stone']: T3(TX['smooth']),
-    P['minecraft:sand']: T3(TX['sand']),
-    P['minecraft:sandstone']: T3(TX['sandstone']),
-    P['minecraft:oak_planks']: T3(TX['oak_pl']),
-    P['minecraft:birch_planks']: T3(TX['birch_pl']),
-    P['minecraft:spruce_planks']: T3(TX['spruce_pl']),
-    P['minecraft:dark_oak_planks']: T3(TX['dark_pl']),
-    P['minecraft:oak_log']: T3(TX['oak_log_t'], TX['oak_log']),
-    P['minecraft:birch_log']: T3(TX['birch_log_t'], TX['birch_log']),
-    P['minecraft:spruce_log']: T3(TX['spruce_log_t'], TX['spruce_log']),
-    P['minecraft:cherry_log']: T3(TX['cherry_log_t'], TX['cherry_log']),
-    P['minecraft:oak_leaves']: T3(TX['oak_lv']),
-    P['minecraft:birch_leaves']: T3(TX['birch_lv']),
-    P['minecraft:spruce_leaves']: T3(TX['spruce_lv']),
-    P['minecraft:dark_oak_leaves']: T3(TX['dark_lv']),
-    P['minecraft:cherry_leaves']: T3(TX['cherry_lv']),
-    P['minecraft:flowering_azalea_leaves']: T3(TX['azalea_lv']),
-    P['minecraft:pink_terracotta']: T3(TX['pinkter']),
-    P['minecraft:glass']: T3(TX['glass']),
-    P['minecraft:glowstone']: T3(TX['glow']),
-    P['minecraft:dirt_path']: T3(TX['path_top'], TX['path_side'], TX['dirt']),
-    P['minecraft:snow_block']: T3(TX['snow']),
-    P['minecraft:packed_ice']: T3(TX['packed_ice']),
-    P['minecraft:water']: T3(TX['water']),
-    P['minecraft:hay_block']: T3(TX['hay_t'], TX['hay_s']),
-    P['minecraft:bamboo_block']: T3(TX['bamboo']),
-    P['minecraft:cactus']: T3(TX['cactus'], TX['cactus_s']),
-    P['minecraft:mycelium']: T3(TX['myc_top'], TX['myc_s']),
-    P['minecraft:red_mushroom_block']: T3(TX['mush_red']),
-    P['minecraft:mushroom_stem']: T3(TX['mush_stem']),
-    P['minecraft:white_wool']: T3(TX['white_w']),
-    P['minecraft:red_wool']: T3(TX['red_w']),
-}
-NTOP = np.zeros(max(M) + 1, dtype=np.int32)
-NSIDE = np.zeros_like(NTOP); NBOT = np.zeros_like(NTOP)
-for pid, t3 in M.items():
-    if t3 is None: continue
-    NTOP[pid], NSIDE[pid], NBOT[pid] = t3
 
+BASE_M = {
+    'minecraft:air': None,
+    'minecraft:grass_block': T3(TX['grass_top'], TX['grass_side'], TX['dirt']),
+    'minecraft:dirt': T3(TX['dirt']),
+    'minecraft:stone': T3(TX['stone']),
+    'minecraft:andesite': T3(TX['andesite']),
+    'minecraft:cobblestone': T3(TX['cobble']),
+    'minecraft:stone_bricks': T3(TX['stonebrick']),
+    'minecraft:smooth_stone': T3(TX['smooth']),
+    'minecraft:sand': T3(TX['sand']),
+    'minecraft:sandstone': T3(TX['sandstone']),
+    'minecraft:oak_planks': T3(TX['oak_pl']),
+    'minecraft:birch_planks': T3(TX['birch_pl']),
+    'minecraft:spruce_planks': T3(TX['spruce_pl']),
+    'minecraft:dark_oak_planks': T3(TX['dark_pl']),
+    'minecraft:oak_log': T3(TX['oak_log_t'], TX['oak_log']),
+    'minecraft:birch_log': T3(TX['birch_log_t'], TX['birch_log']),
+    'minecraft:spruce_log': T3(TX['spruce_log_t'], TX['spruce_log']),
+    'minecraft:cherry_log': T3(TX['cherry_log_t'], TX['cherry_log']),
+    'minecraft:oak_leaves': T3(TX['oak_lv']),
+    'minecraft:birch_leaves': T3(TX['birch_lv']),
+    'minecraft:spruce_leaves': T3(TX['spruce_lv']),
+    'minecraft:dark_oak_leaves': T3(TX['dark_lv']),
+    'minecraft:cherry_leaves': T3(TX['cherry_lv']),
+    'minecraft:flowering_azalea_leaves': T3(TX['azalea_lv']),
+    'minecraft:pink_terracotta': T3(TX['pinkter']),
+    'minecraft:glass': T3(TX['glass']),
+    'minecraft:glowstone': T3(TX['glow']),
+    'minecraft:dirt_path': T3(TX['path_top'], TX['path_side'], TX['dirt']),
+    'minecraft:snow_block': T3(TX['snow']),
+    'minecraft:packed_ice': T3(TX['packed_ice']),
+    'minecraft:water': T3(TX['water']),
+    'minecraft:hay_block': T3(TX['hay_t'], TX['hay_s']),
+    'minecraft:bamboo_block': T3(TX['bamboo']),
+    'minecraft:cactus': T3(TX['cactus'], TX['cactus_s']),
+    'minecraft:mycelium': T3(TX['myc_top'], TX['myc_s']),
+    'minecraft:red_mushroom_block': T3(TX['mush_red']),
+    'minecraft:mushroom_stem': T3(TX['mush_stem']),
+    'minecraft:white_wool': T3(TX['white_w']),
+    'minecraft:red_wool': T3(TX['red_w']),
+    'minecraft:mud_bricks': T3(TX['mud_bricks']),
+    'minecraft:packed_mud': T3(TX['packed_mud']),
+    'minecraft:tuff': T3(TX['tuff']),
+    'minecraft:tuff_bricks': T3(TX['tuff_bricks']),
+    'minecraft:polished_tuff': T3(TX['pol_tuff']),
+    'minecraft:chiseled_tuff': T3(TX['chi_tuff']),
+    'minecraft:cut_sandstone': T3(TX['cut_sand']),
+    'minecraft:smooth_sandstone': T3(TX['smooth_sand']),
+    'minecraft:chiseled_sandstone': T3(TX['chi_sand']),
+    'minecraft:cracked_stone_bricks': T3(TX['cracked_sb']),
+    'minecraft:mossy_stone_bricks': T3(TX['mossy_sb']),
+    'minecraft:mossy_cobblestone': T3(TX['mossy_cob']),
+    'minecraft:gravel': T3(TX['gravel']),
+    'minecraft:polished_andesite': T3(TX['pol_and']),
+    'minecraft:stripped_spruce_log': T3(TX['strip_spruce_t'], TX['strip_spruce']),
+    'minecraft:yellow_wool': T3(TX['yellow_w']),
+}
+
+# ---- generic fallback: any block without a mapping gets a texture by name ----
+def _fallback_t3(block_name):
+    base = block_name.replace('minecraft:', '')
+    names = [f[:-4] for f in os.listdir(TEXDIR)]
+    cand = None
+    if base.endswith('_log') and f'{base}_top' in names:
+        cand = (f'{base}_top', base, base)
+    elif base in names:
+        cand = (base, base, base)
+    if cand is None:
+        cand = ('stone', 'stone', 'stone')
+    return T3(bank(tex(cand[0])), bank(tex(cand[1])), bank(tex(cand[2])))
+
+grid = None; H = L = W = 0
+NTOP = NSIDE = NBOT = None
+
+def use_world(npz='world_big.npz'):
+    """Load a world npz and (re)build the palette->texture maps for it."""
+    global grid, H, L, W, PID, P, NTOP, NSIDE, NBOT
+    d = np.load(npz, allow_pickle=True)
+    grid = d['grid'].copy()
+    grid[grid == 255] = 0
+    H, L, W = grid.shape
+    PID = {str(n): i for i, n in enumerate(d['palette'])}
+    P = PID
+    NTOP = np.zeros(256, np.int32); NSIDE = np.zeros_like(NTOP); NBOT = np.zeros_like(NTOP)
+    for name, pid in PID.items():
+        t3 = BASE_M.get(name) or _fallback_t3(name)
+        if t3 is not None:
+            NTOP[pid], NSIDE[pid], NBOT[pid] = t3
+
+use_world()
 # ---------------- raycast ----------------
 SKY_TOP = np.array([120, 175, 235], float)
 SKY_BOT = np.array([200, 224, 245], float)
@@ -278,16 +338,17 @@ def walk(name, x, z, yaw, pitch=10, dy=1.7, **kw):
     print(f"{name}: eye at ({x},{y:.0f},{z}) yaw={yaw}")
     look(x, y, z, yaw, pitch=pitch, out=f'walk_{name}.png', **kw)
 
-SHOTS = [
-    ("big_river3", 396, 340, 250, 6),
-    ("big_beach",  384, 297, 250, 8),
-    ("big_cherry", 120, 350, 60, 10),
-    ("big_bay",    455, 240, 280, 8),
-    ("big_peak",   221, 132, 200, 18),
-    ("big_rimfall", 183, 44, 190, 4),
-]
-for shot in SHOTS:
-    name, x, z, yaw = shot[:4]
-    pitch = shot[4] if len(shot) > 4 else 10
-    walk(name, x, z, yaw, pitch=pitch)
-print("all walks done")
+if __name__ == '__main__':
+    SHOTS = [
+        ("big_river3", 396, 340, 250, 6),
+        ("big_beach",  384, 297, 250, 8),
+        ("big_cherry", 120, 350, 60, 10),
+        ("big_bay",    455, 240, 280, 8),
+        ("big_peak",   221, 132, 200, 18),
+        ("big_rimfall", 183, 44, 190, 4),
+    ]
+    for shot in SHOTS:
+        name, x, z, yaw = shot[:4]
+        pitch = shot[4] if len(shot) > 4 else 10
+        walk(name, x, z, yaw, pitch=pitch)
+    print("all walks done")
