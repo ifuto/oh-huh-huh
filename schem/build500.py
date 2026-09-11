@@ -99,6 +99,8 @@ def voxelize_main():
     STONE_IDS = np.array([P['minecraft:stone'], P['minecraft:andesite'], P['minecraft:cobblestone'], P['minecraft:andesite']], dtype=np.uint8)
 
     pos_chunks, rank_chunks, name_chunks = [], [], []
+    terr_top = np.full((L, W), -1, dtype=np.int64)   # per-column natural terrain top (meadow/rock)
+    terr_bot = np.full((L, W), 10**9, dtype=np.int64)
     STEP = 0.6
     for node, Pw in prims:
         key = mkey(node)
@@ -128,6 +130,10 @@ def voxelize_main():
         else:
             nid = np.full(len(pos), block_of[key], dtype=np.uint8)
         pos_chunks.append(pos); rank_chunks.append(np.full(len(pos), rank, dtype=np.int16)); name_chunks.append(nid)
+        if key in ('terrain', 'rock'):
+            col = (bz.astype(np.int64) * W + bx)
+            np.maximum.at(terr_top.reshape(-1), col, by)
+            np.minimum.at(terr_bot.reshape(-1), col, by)
         del pts, bx, bz, by, pos, nid
 
     pos = np.concatenate(pos_chunks); rank = np.concatenate(rank_chunks); nid = np.concatenate(name_chunks)
@@ -145,6 +151,7 @@ def voxelize_main():
     ok = rank < grid[by, bz, bx]
     grid[by[ok], bz[ok], bx[ok]] = nid[ok]
     print(f"main island blocks: {len(pos):,}")
+    return terr_top, terr_bot
 
 # ---------------- helper: noise ----------------
 _rng = np.random.default_rng(24)
@@ -167,8 +174,17 @@ def make_islet(cx, cz, ytop, R, theme):
     r = np.sqrt(dx*dx + dz*dz)
     inside = r <= R
     t = 1 - (r/np.maximum(R, 1))**2          # 1 center -> 0 rim
-    hgt = np.where(inside, (8 + 10*t + 4*vnoise2(np.clip(r, 0, 999).astype(np.int64), np.zeros_like(r, dtype=np.int64) + 7, theme)).astype(int), 0)
-    hgt = np.clip(hgt, 3, 40)
+    # 2D positional noise (NOT radius-based; radius noise draws concentric rings)
+    hgt = np.where(inside, (8 + 8*t + 2.2*vnoise2(dx*3 + dz*131, dz*3 - dx*17, theme)).astype(int), 0)
+    # 3x3 box smoothing for gentle rolling terrain (2 passes)
+    for _ in range(2):
+        pad = np.pad(hgt, 1, mode='edge')
+        sm = np.zeros_like(hgt, dtype=np.float64)
+        for oz_ in (0,1,2):
+            for ox_ in (0,1,2):
+                sm += pad[oz_:oz_+L, ox_:ox_+W]
+        hgt = (sm/9).astype(int)
+    hgt = np.clip(hgt, 2, 30)
     depth = np.where(inside, (R*0.9*(1 - (r/np.maximum(R,1))**1.4) + 4).astype(int), 0)   # cone depth
     # fill column solids
     for z, x in zip(*np.nonzero(inside)):
@@ -328,32 +344,21 @@ def decorate_main():
             if y > 0 and grid[y, z, x] == P['minecraft:grass_block']:
                 tree_cherry(x, z, y+1)
     # --- hot spring: north-west (search flat grass pocket)
-    for tries in range(200):
-        sx = cx - 45 - int(hnoise(tries, 73, 91) * 45)
-        sz = L//2 - 15 - int(hnoise(tries, 74, 92) * 40)
-        y = surface_at(sx, sz)
-        if y > 60 and grid[y, sz, sx] == P['minecraft:grass_block']:
-            ok = True
-            for dz in range(-4, 5):
-                for dx in range(-5, 6):
-                    yy = surface_at(sx+dx, sz+dz)
-                    if yy < 1 or abs(yy - y) > 3: ok = False; break
-                if not ok: break
-            if ok:
-                print(f"hot spring at {sx},{sz} y={y}")
-                for dz in range(-4, 5):
-                    for dx in range(-5, 6):
-                        if dx*dx/25 + dz*dz/16 <= 1:
-                            rim = abs(dx) == 5 or abs(dz) == 4
-                            grid[y, sz+dz, sx+dx] = P['minecraft:stone_bricks'] if rim else P['minecraft:water']
-                for i in range(5):
-                    grid[y+1, sz-4+i, sx+6] = P['minecraft:birch_planks']
-                break
+    sx, sz = 195, 248          # surveyed: flat, building-free meadow near lake north shore
+    y = surface_at(sx, sz)
+    print(f"hot spring at {sx},{sz} y={y}")
+    for dz in range(-4, 5):
+        for dx in range(-5, 6):
+            if dx*dx/25 + dz*dz/16 <= 1:
+                rim = abs(dx) == 5 or abs(dz) == 4
+                grid[y, sz+dz, sx+dx] = P['minecraft:stone_bricks'] if rim else P['minecraft:water']
+    for i in range(5):
+        grid[y+1, sz-4+i, sx+6] = P['minecraft:birch_planks']
 
 # ---------------- assemble world ----------------
 
 print("voxelizing main island...")
-voxelize_main()
+terr_top, terr_bot = voxelize_main()
 decorate_main()
 
 print("placing islets...")
@@ -374,16 +379,35 @@ for cx_, cz_, ytop_, R_, theme_, name_ in islets:
 # small floating rock shards for depth
 for i in range(24):
     a = hnoise(i, 42, 51) * 6.283
-    rr = 150 + hnoise(i, 43, 52) * 85
+    rr = 168 + hnoise(i, 43, 52) * 82
     x, z = int(W/2 + np.cos(a)*rr), int(L/2 + np.sin(a)*rr)
-    y = int(60 + hnoise(i, 44, 53) * 120)
-    r = int(2 + hnoise(i, 45, 54) * 4)
+    y = int(46 + hnoise(i, 44, 53) * 128)
+    r = int(1 + hnoise(i, 45, 54) * 3)
     for dz in range(-r, r+1):
         for dx in range(-r, r+1):
             d = dx*dx + dz*dz
             if d <= r*r and 0 <= x+dx < W and 0 <= z+dz < L:
                 t = int((1 - (d/(r*r))**.5) * r * .8) + 1
                 grid[y:y+t, z+dz, x+dx] = P['minecraft:stone'] if hnoise(x+dx, y, z+dz) > .4 else P['minecraft:andesite']
+
+# ---------------- fill hollow island interior (rock cone was a shell mesh) ----------------
+print("filling island interior...")
+has_terr = terr_top > 0
+tt = np.where(has_terr, terr_top, 0)          # (L, W)
+tb = np.where(has_terr, terr_bot, 0)
+print(f" terrain columns: {int(has_terr.sum()):,}  avg thickness: {float((tt-tb)[has_terr].mean()):.1f}")
+_xa = np.arange(W, dtype=np.int64)[None, :]; _za = np.arange(L, dtype=np.int64)[:, None]
+patch = ((_xa*374761393 + _za*668265263) & 0xFFFFFFFF) % 100
+for y0 in range(0, H, 40):
+    y1 = min(y0 + 40, H)
+    ys = np.arange(y0, y1)[:, None, None]
+    slab = grid[y0:y1]
+    m = (ys > (tb + 1)[None, :, :]) & (ys < tt[None, :, :]) & (slab == AIR)
+    if not m.any(): continue
+    stone = P['minecraft:stone']; ande = P['minecraft:andesite']
+    fill = np.where(np.broadcast_to(patch[None], slab.shape) < 24, ande, stone).astype(np.uint8)
+    slab[m] = fill[m]
+    grid[y0:y1] = slab
 
 # ---------------- grass->dirt under grass (thin shell) + water settle ----------------
 solid = grid != AIR
