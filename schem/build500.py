@@ -423,14 +423,16 @@ for d in range(1, 3):
     m = (yy >= 0) & (grid[yy, zs, xs] == AIR)
     grid[yy[m], zs[m], xs[m]] = P['minecraft:dirt'] if d == 1 else P['minecraft:stone']
 
-# water settle down (3 iterations)
-for _ in range(3):
+# water settles DOWNWARD (y-1 is below; y+1 is up!). Iterate until stable.
+# Fills under-lake gaps (water plane sat 1-2 blocks above terrain) and lets
+# rim water spill over the island edge as a limited waterfall curtain.
+for _ in range(16):
     water = (grid == P['minecraft:water'])
     below_air = np.zeros_like(water)
-    below_air[:-1] = water[:-1] & (grid[1:] == AIR)
+    below_air[1:] = water[1:] & (grid[:-1] == AIR)
     if not below_air.any(): break
     ys2, zs2, xs2 = np.nonzero(below_air)
-    grid[ys2+1, zs2, xs2] = P['minecraft:water']
+    grid[ys2-1, zs2, xs2] = P['minecraft:water']
 
 nonair = int((grid != AIR).sum())
 print(f"world blocks: {nonair:,} / {grid.size:,}")

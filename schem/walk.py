@@ -279,9 +279,10 @@ def walk(name, x, z, yaw, pitch=10, dy=1.7, **kw):
     look(x, y, z, yaw, pitch=pitch, out=f'walk_{name}.png', **kw)
 
 SHOTS = [
-    ("hotspring3", 195, 248, 30, 6),
-    ("waterfall2", 200, 290, 195, 10),
-    ("streetsun",  250, 247, 15, 10),
+    ("lakeside_fix", 252, 296, 270, 8),
+    ("lake_nw_fix",  205, 250, 120, 6),
+    ("waterfall_fix", 200, 290, 195, 4),
+    ("hotspring4", 195, 248, 30, 6),
 ]
 for shot in SHOTS:
     name, x, z, yaw = shot[:4]
