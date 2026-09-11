@@ -15,7 +15,7 @@ OUTDIR = '../renders'
 os.makedirs(OUTDIR, exist_ok=True)
 
 # ---------------- world ----------------
-d = np.load('world_500.npz', allow_pickle=True)
+d = np.load('world_big.npz', allow_pickle=True)
 grid = d['grid'].copy()
 grid[grid == 255] = 0
 H, L, W = grid.shape
@@ -279,10 +279,10 @@ def walk(name, x, z, yaw, pitch=10, dy=1.7, **kw):
     look(x, y, z, yaw, pitch=pitch, out=f'walk_{name}.png', **kw)
 
 SHOTS = [
-    ("lakeside_fix", 252, 296, 270, 8),
-    ("lake_nw_fix",  205, 250, 120, 6),
-    ("waterfall_fix", 200, 290, 195, 4),
-    ("hotspring4", 195, 248, 30, 6),
+    ("big_river3", 396, 340, 250, 6),
+    ("big_beach",  384, 297, 250, 8),
+    ("big_cherry", 120, 350, 60, 10),
+    ("big_bay",    455, 240, 280, 8),
 ]
 for shot in SHOTS:
     name, x, z, yaw = shot[:4]
