@@ -250,7 +250,10 @@ def write_schem(namegrid, dims, out_path, dataversion=4671):  # 4671 = MC 1.21.1
             String('Author'): String('ISOLA World Studio'),
         }),
     })
-    f = nbtlib.File({'Schematic': sch})
+    # Sponge/FAWE format: ROOT tag is NAMED 'Schematic', fields directly inside
+    f = nbtlib.File()
+    f.update(sch)
+    f.root_name = 'Schematic'
     tmp = out_path + '.tmp.nbt'
     f.save(tmp, gzipped=True)
     payload = gzip.decompress(open(tmp, 'rb').read())

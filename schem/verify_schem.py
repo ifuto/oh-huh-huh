@@ -122,9 +122,9 @@ def nbt_audit(payload):
     print("\n== B. NBT structure (independent parser) ==")
     p = NBTParser(payload)
     root_name, root = p.named()
-    check("root is unnamed TAG_Compound", root_name == '' and isinstance(root, dict))
-    check("'Schematic' compound present", 'Schematic' in root and isinstance(root['Schematic'], dict))
-    s = root['Schematic']
+    check("root TAG_Compound named 'Schematic' (Sponge/FAWE spec)",
+          root_name == 'Schematic' and isinstance(root, dict))
+    s = root
     # exact consumption
     check("parser consumed payload exactly (no trailing)", p.i == len(payload), f"parsed {p.i}/{len(payload)} B")
     # spec fields & types (Sponge v2)
@@ -146,7 +146,7 @@ def nbt_audit(payload):
     # cross-check with nbtlib
     import nbtlib
     f = nbtlib.load(sys.argv[1])
-    s2 = f['Schematic']
+    s2 = f  # nbtlib File: root fields are top-level when root_name == 'Schematic'
     check("nbtlib sees same dims", (int(s2['Width']), int(s2['Height']), int(s2['Length'])) == (W, H, L))
     check("nbtlib sees same BlockData bytes", bytes(np.asarray(s2['BlockData']).astype(np.uint8)) == bd)
     check("nbtlib sees same Palette", {str(k): int(v) for k, v in s2['Palette'].items()} == pal)

@@ -432,7 +432,10 @@ def write_schem():
         'BlockData': ByteArray(vals.astype(np.int8)),
         'Metadata': Compound({String('Name'): String('suifu-island-500'), String('Author'): String('ISOLA World Studio')}),
     })
-    f = nbtlib.File({'Schematic': sch})
+    # Sponge/FAWE format: ROOT tag is NAMED 'Schematic', fields directly inside
+    f = nbtlib.File()
+    f.update(sch)
+    f.root_name = 'Schematic'
     tmp = 'suifu-island_500.schem.tmp'
     f.save(tmp, gzipped=True)
     payload = gzip.decompress(open(tmp, 'rb').read())
